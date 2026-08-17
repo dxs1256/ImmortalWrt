@@ -48,6 +48,11 @@ on:
         required: false
         type: boolean
         default: false
+      enable_accesscontrol:
+        description: "集成上网行为管理 (AccessControl)"
+        required: false
+        type: boolean
+        default: false
       include_docker:
         description: |
           是否编译 Docker 插件
@@ -157,6 +162,73 @@ jobs:
           PYEOF
           echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES bash curl jq smartmontools iputils-arping"' >> shell/custom-packages.sh
           echo "✅ 已追加 pushbot 依赖"
+
+      - name: Enable Accesscontrol integration
+        if: ${{ github.event.inputs.enable_accesscontrol == 'true' }}
+        run: |
+          python3 << 'PYEOF'
+          import tarfile, urllib.request, io, os
+
+          BASE_URL = "https://github.com/aige168/luci-app-accesscontrol/archive/refs/heads/main.tar.gz"
+          print("📥 下载 luci-app-accesscontrol...")
+          resp = urllib.request.urlopen(BASE_URL)
+          tar = tarfile.open(fileobj=io.BytesIO(resp.read()))
+
+          PREFIX = "luci-app-accesscontrol-main/"
+          for member in tar.getmembers():
+              if not member.name.startswith(PREFIX):
+                  continue
+              rel = member.name[len(PREFIX):]
+              if rel.startswith("luasrc/"):
+                  member.name = "usr/lib/lua/luci/" + rel[len("luasrc/"):]
+              elif rel.startswith("root/"):
+                  member.name = rel[len("root/"):]
+              elif rel.startswith("po/"):
+                  member.name = "usr/lib/lua/luci/" + rel
+              else:
+                  continue
+              if member.isfile() or member.islnk():
+                  tar.extract(member, "files")
+          print("✅ accesscontrol 已解压到 files/")
+          PYEOF
+
+      - name: Enable OpenList2
+        run: |
+          python3 << 'PYEOF'
+          import struct, tarfile, io, urllib.request, os
+
+          BASE_URL = "https://github.com/sbwml/luci-app-openlist2/releases/download/v4.2.5/openwrt-24.10-aarch64_generic.tar.gz"
+          print("📥 下载 openlist2...")
+          resp = urllib.request.urlopen(BASE_URL)
+          outer_tar = tarfile.open(fileobj=io.BytesIO(resp.read()))
+
+          for member in outer_tar.getmembers():
+              if not member.name.endswith('.ipk'):
+                  continue
+              print(f"  📦 处理 {os.path.basename(member.name)}...")
+              ipk_data = outer_tar.extractfile(member).read()
+              assert ipk_data[:8] == b'!<arch>\n', "不是 ar 格式"
+              pos = 8
+              extracted = False
+              while pos < len(ipk_data):
+                  name = ipk_data[pos:pos+16].decode().strip()
+                  size = int(ipk_data[pos+48:pos+58].decode().strip())
+                  pos += 60
+                  content = ipk_data[pos:pos+size]
+                  if name == 'data.tar.gz':
+                      inner_tar = tarfile.open(fileobj=io.BytesIO(content))
+                      inner_tar.extractall('files')
+                      extracted = True
+                      print(f"    ✅ 已解压到 files/")
+                      break
+                  pos += size
+                  if size % 2 != 0:
+                      pos += 1
+              if not extracted:
+                  print(f"    ❌ 未找到 data.tar.gz")
+                  exit(1)
+          print("✅ openlist2 已解压到 files/")
+          PYEOF
 
       - name: Building Rockchip ImmortalWrt 24.10.x
         run: |
