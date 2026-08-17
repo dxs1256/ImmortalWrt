@@ -38,6 +38,11 @@ on:
         required: false
         type: boolean
         default: false
+      enable_pushbot:
+        description: "集成 PushBot 消息推送插件"
+        required: false
+        type: boolean
+        default: false
       include_docker:
         description: |
           是否编译 Docker 插件
@@ -104,6 +109,24 @@ jobs:
           fi
       # docker 引擎(docker/dockerd)已在 rockchip/build25.sh 的 INCLUDE_DOCKER=yes 分支处理，
       # 无需在此追加 custom-packages.sh（那是 24.10/opkg 用的，对 25.12/apk 无效）
+
+      - name: Enable Pushbot integration
+        if: ${{ github.event.inputs.enable_pushbot == 'true' }}
+        run: |
+          python3 << 'PYEOF'
+          import tarfile, urllib.request
+
+          BASE_URL = "https://github.com/gaoyaxuan/luci-app-pushbot/releases/download/v3.8.20"
+          APK_URL = f"{BASE_URL}/luci-app-pushbot-3.8.20-r1_SNAPSHOT.apk"
+          print("📥 下载 luci-app-pushbot (apk)...")
+          resp = urllib.request.urlopen(APK_URL)
+          data = resp.read()
+          tar = tarfile.open(fileobj=io.BytesIO(data))
+          tar.extractall('files')
+          print("✅ pushbot 已解压到 files/")
+          PYEOF
+          echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES bash curl jq smartmontools iputils-arping"' >> shell/apk-custom-packages.sh
+          echo "✅ 已追加 pushbot 依赖"
 
       - name: Building Rockchip ImmortalWrt 25.12.x
         run: |

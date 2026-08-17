@@ -43,6 +43,11 @@ on:
         required: false
         type: boolean
         default: true
+      enable_pushbot:
+        description: "集成 PushBot 消息推送插件"
+        required: false
+        type: boolean
+        default: false
       include_docker:
         description: |
           是否编译 Docker 插件
@@ -115,6 +120,43 @@ jobs:
             echo "❎ 未启用 luci-app-store"
           fi
           
+
+      - name: Enable Pushbot integration
+        if: ${{ github.event.inputs.enable_pushbot == 'true' }}
+        run: |
+          python3 << 'PYEOF'
+          import struct, tarfile, io, urllib.request
+
+          BASE_URL = "https://github.com/gaoyaxuan/luci-app-pushbot/releases/download/v3.8.20"
+          IPK_URL = f"{BASE_URL}/luci-app-pushbot_3.8.20-r1_all_openwrt-24.10.ipk"
+          print("📥 下载 luci-app-pushbot...")
+          resp = urllib.request.urlopen(IPK_URL)
+          data = resp.read()
+
+          # 解析 ar 格式，提取 data.tar.gz
+          assert data[:8] == b'!<arch>\n', "不是 ar 格式"
+          pos = 8
+          extracted = False
+          while pos < len(data):
+              name = data[pos:pos+16].decode().strip()
+              size = int(data[pos+48:pos+58].decode().strip())
+              pos += 60
+              content = data[pos:pos+size]
+              if name == 'data.tar.gz':
+                  tar = tarfile.open(fileobj=io.BytesIO(content))
+                  tar.extractall('files')
+                  extracted = True
+                  print("✅ pushbot 已解压到 files/")
+                  break
+              pos += size
+              if size % 2 != 0:
+                  pos += 1
+          if not extracted:
+              print("❌ 未找到 data.tar.gz")
+              exit(1)
+          PYEOF
+          echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES bash curl jq smartmontools iputils-arping"' >> shell/custom-packages.sh
+          echo "✅ 已追加 pushbot 依赖"
 
       - name: Building Rockchip ImmortalWrt 24.10.x
         run: |
