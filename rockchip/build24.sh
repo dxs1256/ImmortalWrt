@@ -121,3 +121,12 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') - Build completed successfully."
+
+echo "===== 实际安装的软件包清单（来自 opkg 真实安装记录） ====="
+MANIFEST=$(find bin/targets -name "*.manifest" -type f 2>/dev/null | head -1)
+if [ -n "$MANIFEST" ]; then
+    echo "来源文件: $MANIFEST"
+    cat "$MANIFEST"
+else
+    echo "未找到 .manifest 文件"
+fi
