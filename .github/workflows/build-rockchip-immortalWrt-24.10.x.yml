@@ -123,12 +123,33 @@ jobs:
           data_buf = io.BytesIO()
           data_tar = tarfile.open(fileobj=data_buf, mode='w:gz')
 
+          # 记录已写入的目录，确保所有父目录都有 tar 条目（opkg 解压新目录必须显式建目录）
+          added_dirs = set()
+
+          def add_dir(d):
+              if d in added_dirs:
+                  return
+              added_dirs.add(d)
+              ti = tarfile.TarInfo(d)
+              ti.type = tarfile.DIRTYPE
+              ti.mode = 0o755
+              data_tar.addfile(ti)
+
+          def ensure_parents(name):
+              parts = name.lstrip("./").split("/")
+              cur = ""
+              for p in parts[:-1]:
+                  cur = (cur + "/" + p).strip("/")
+                  add_dir("./" + cur if cur else ".")
+
           def add_file(name, content, mode=0o644):
+              ensure_parents(name)
               ti = tarfile.TarInfo(name)
               ti.size = len(content)
               ti.mode = mode
               data_tar.addfile(ti, io.BytesIO(content))
 
+          add_dir(".")
           for member in src_tar.getmembers():
               if not member.name.startswith(PREFIX):
                   continue
@@ -142,6 +163,7 @@ jobs:
               else:
                   continue
               if member.isdir():
+                  add_dir("./" + target)
                   continue
               add_file("./" + target, src_tar.extractfile(member).read(), member.mode & 0o777)
           data_tar.close()
