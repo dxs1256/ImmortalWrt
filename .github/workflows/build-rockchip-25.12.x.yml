@@ -102,13 +102,8 @@ jobs:
           else
             echo "❎ 未启用 luci-app-store"
           fi
-      - name: Check Docker
-        run: |
-          if [[ "${{ inputs.include_docker }}" == "yes" ]]; then
-             echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES docker"' >> shell/custom-packages.sh
-             echo "✅ 已为Rockchip平台补充 docker 组件"
-          fi
-      
+      # docker 引擎(docker/dockerd)已在 rockchip/build25.sh 的 INCLUDE_DOCKER=yes 分支处理，
+      # 无需在此追加 custom-packages.sh（那是 24.10/opkg 用的，对 25.12/apk 无效）
 
       - name: Building Rockchip ImmortalWrt 25.12.x
         run: |

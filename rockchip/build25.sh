@@ -55,9 +55,11 @@ PACKAGES="$PACKAGES luci-theme-argon"
 PACKAGES="$PACKAGES luci-app-argon-config"
 PACKAGES="$PACKAGES luci-i18n-argon-config-zh-cn"
 # 判断是否需要编译 Docker 插件
+# 注意：25.12 (apk) 构建必须同时加入 docker/dockerd 引擎本体，
+# 否则勾选 docker 只会装 luci-app-dockerman 界面，固件里没有 docker 服务。
 if [ "$INCLUDE_DOCKER" = "yes" ]; then
-    PACKAGES="$PACKAGES luci-i18n-dockerman-zh-cn"
-    echo "Adding package: luci-i18n-dockerman-zh-cn"
+    PACKAGES="$PACKAGES docker dockerd luci-i18n-dockerman-zh-cn"
+    echo "Adding packages: docker dockerd luci-i18n-dockerman-zh-cn"
 fi
 # 文件管理器
 PACKAGES="$PACKAGES luci-i18n-filemanager-zh-cn"
