@@ -39,6 +39,16 @@ else
   # 解压并拷贝ipk到packages目录
   sh shell/prepare-packages.sh
   ls -lah /home/build/immortalwrt/packages/
+  # 复制 shell/ 下的自定义 IPK 到 packages/
+  echo "📦 复制自定义 IPK 到 packages/..."
+  if [ -d /home/build/immortalwrt/shell/pushbot ]; then
+    cp -v /home/build/immortalwrt/shell/pushbot/*.ipk /home/build/immortalwrt/packages/ 2>/dev/null || true
+  fi
+  if [ -d /home/build/immortalwrt/shell/openlist2 ]; then
+    cp -v /home/build/immortalwrt/shell/openlist2/*.ipk /home/build/immortalwrt/packages/ 2>/dev/null || true
+  fi
+  echo "✅ packages 目录最终内容:"
+  ls -lah /home/build/immortalwrt/packages/
   # 添加架构优先级信息
   sed -i '1i\
   arch aarch64_generic 10\n\

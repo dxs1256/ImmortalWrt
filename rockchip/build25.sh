@@ -38,6 +38,16 @@ else
   # 解压并拷贝apk到packages目录
   sh shell/apk-prepare-packages.sh
   ls -lah /home/build/immortalwrt/packages/
+  # 复制 shell/ 下的自定义 APK 到 packages/
+  echo "📦 复制自定义 APK 到 packages/..."
+  if [ -d /home/build/immortalwrt/shell/pushbot ]; then
+    cp -v /home/build/immortalwrt/shell/pushbot/*.apk /home/build/immortalwrt/packages/ 2>/dev/null || true
+  fi
+  if [ -d /home/build/immortalwrt/shell/openlist2 ]; then
+    cp -v /home/build/immortalwrt/shell/openlist2/*.apk /home/build/immortalwrt/packages/ 2>/dev/null || true
+  fi
+  echo "✅ packages 目录最终内容:"
+  ls -lah /home/build/immortalwrt/packages/
 fi
 
 # 输出调试信息

@@ -103,98 +103,26 @@ jobs:
       
       - name: Enable Pushbot integration
         run: |
-          python3 << 'PYEOF'
-          import struct, tarfile, io, urllib.request
-
-          BASE_URL = "https://github.com/gaoyaxuan/luci-app-pushbot/releases/download/v3.8.20"
-          IPK_URL = f"{BASE_URL}/luci-app-pushbot_3.8.20-r1_all_openwrt-24.10.ipk"
-          print("📥 下载 luci-app-pushbot...")
-          resp = urllib.request.urlopen(IPK_URL)
-          data = resp.read()
-
-          # IPK 格式已变：现在是 gzip(tar) 而非 ar 格式
-          # 解压 gzip → 打开 tar → 提取 data.tar.gz
-          import gzip
-          decompressed = gzip.decompress(data)
-          outer_tar = tarfile.open(fileobj=io.BytesIO(decompressed))
-          extracted = False
-          for member in outer_tar.getmembers():
-              # tar 条目名可能是 ./data.tar.gz 或 data.tar.gz
-              if member.name.endswith('/data.tar.gz') or member.name == 'data.tar.gz':
-                  print(f"  📦 找到 {member.name} ({member.size} bytes)")
-                  content = outer_tar.extractfile(member).read()
-                  inner_tar = tarfile.open(fileobj=io.BytesIO(content), mode='r:gz')
-                  inner_tar.extractall('files')
-                  extracted = True
-                  print("✅ pushbot 已解压到 files/")
-                  break
-          if not extracted:
-              print("❌ 未找到 data.tar.gz")
-              exit(1)
-          PYEOF
-          echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES bash curl jq smartmontools iputils-arping"' >> shell/custom-packages.sh
-          echo "✅ 已追加 pushbot 依赖"
+          mkdir -p "${{ github.workspace }}/shell/pushbot"
+          curl -sL -o "${{ github.workspace }}/shell/pushbot/pushbot.ipk" \
+            "https://github.com/gaoyaxuan/luci-app-pushbot/releases/download/v3.8.20/luci-app-pushbot_3.8.20-r1_all_openwrt-24.10.ipk"
+          echo "✅ pushbot.ipk 已下载到 shell/pushbot/"
+          echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-pushbot bash curl jq smartmontools iputils-arping"' >> shell/custom-packages.sh
+          echo "✅ 已追加 pushbot"
 
       - name: Enable Accesscontrol integration
         run: |
-          python3 << 'PYEOF'
-          import tarfile, urllib.request, io, os
-
-          BASE_URL = "https://github.com/aige168/luci-app-accesscontrol/archive/refs/heads/main.tar.gz"
-          print("📥 下载 luci-app-accesscontrol...")
-          resp = urllib.request.urlopen(BASE_URL)
-          tar = tarfile.open(fileobj=io.BytesIO(resp.read()))
-
-          PREFIX = "luci-app-accesscontrol-main/"
-          for member in tar.getmembers():
-              if not member.name.startswith(PREFIX):
-                  continue
-              rel = member.name[len(PREFIX):]
-              if rel.startswith("luasrc/"):
-                  member.name = "usr/lib/lua/luci/" + rel[len("luasrc/"):]
-              elif rel.startswith("root/"):
-                  member.name = rel[len("root/"):]
-              elif rel.startswith("po/"):
-                  member.name = "usr/lib/lua/luci/" + rel
-              else:
-                  continue
-              if member.isfile() or member.islnk():
-                  tar.extract(member, "files")
-          print("✅ accesscontrol 已解压到 files/")
-          PYEOF
+          echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-accesscontrol"' >> shell/custom-packages.sh
+          echo "✅ 已追加 accesscontrol"
 
       - name: Enable OpenList2
         run: |
-          python3 << 'PYEOF'
-          import struct, tarfile, io, urllib.request, os, gzip
-
-          BASE_URL = "https://github.com/sbwml/luci-app-openlist2/releases/download/v4.2.5/openwrt-24.10-aarch64_generic.tar.gz"
-          print("📥 下载 openlist2...")
-          resp = urllib.request.urlopen(BASE_URL)
-          outer_tar = tarfile.open(fileobj=io.BytesIO(resp.read()))
-
-          for member in outer_tar.getmembers():
-              if not member.name.endswith('.ipk'):
-                  continue
-              print(f"  📦 处理 {os.path.basename(member.name)}...")
-              ipk_data = outer_tar.extractfile(member).read()
-              # IPK 现在是 gzip(tar) 格式，需解压后提取 data.tar.gz
-              decompressed = gzip.decompress(ipk_data)
-              inner_tar = tarfile.open(fileobj=io.BytesIO(decompressed))
-              extracted = False
-              for entry in inner_tar.getmembers():
-                  if entry.name.endswith('/data.tar.gz') or entry.name == 'data.tar.gz':
-                      data_gz = inner_tar.extractfile(entry).read()
-                      data_tar = tarfile.open(fileobj=io.BytesIO(data_gz), mode='r:gz')
-                      data_tar.extractall('files')
-                      extracted = True
-                      print(f"    ✅ 已解压到 files/")
-                      break
-              if not extracted:
-                  print(f"    ❌ 未找到 data.tar.gz")
-                  exit(1)
-          print("✅ openlist2 已解压到 files/")
-          PYEOF
+          mkdir -p "${{ github.workspace }}/shell/openlist2"
+          curl -sL "https://github.com/sbwml/luci-app-openlist2/releases/download/v4.2.5/openwrt-24.10-aarch64_generic.tar.gz" \
+            | tar -xzf - -C "${{ github.workspace }}/shell/openlist2/" --strip-components=1
+          echo "✅ openlist2 IPK 已下载到 shell/openlist2/"
+          echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-openlist2 luci-i18n-openlist2-zh-cn"' >> shell/custom-packages.sh
+          echo "✅ 已追加 openlist2"
 
       - name: Building Rockchip ImmortalWrt 24.10.x
         run: |
