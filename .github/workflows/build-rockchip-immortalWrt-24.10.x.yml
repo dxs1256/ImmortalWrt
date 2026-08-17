@@ -105,119 +105,29 @@ jobs:
         run: |
           mkdir -p "${{ github.workspace }}/shell/pushbot"
           curl -sL -o "${{ github.workspace }}/shell/pushbot/pushbot.ipk" \
-            "https://github.com/gaoyaxuan/luci-app-pushbot/releases/download/v3.8.20/luci-app-pushbot_3.8.20-r1_all_openwrt-24.10.ipk"
-          echo "✅ pushbot.ipk 已下载到 shell/pushbot/"
+            "https://down.dllkids.xyz/openwrt-feed/24.10/aarch64_generic/luci-app-pushbot_27.222.35022~a09d467_all.ipk"
+          echo "✅ pushbot.ipk 已下载到 shell/pushbot/ (dllkids feed)"
           echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-pushbot bash curl jq smartmontools iputils-arping"' >> shell/custom-packages.sh
           echo "✅ 已追加 pushbot"
 
       - name: Enable Accesscontrol integration
         run: |
           mkdir -p "${{ github.workspace }}/shell/accesscontrol"
-          python3 << 'PYEOF'
-          import io, tarfile, urllib.request, textwrap
-
-          resp = urllib.request.urlopen("https://github.com/aige168/luci-app-accesscontrol/archive/refs/heads/main.tar.gz")
-          src_tar = tarfile.open(fileobj=io.BytesIO(resp.read()))
-          PREFIX = "luci-app-accesscontrol-main/"
-
-          data_buf = io.BytesIO()
-          data_tar = tarfile.open(fileobj=data_buf, mode='w:gz')
-
-          # 记录已写入的目录，确保所有父目录都有 tar 条目（opkg 解压新目录必须显式建目录）
-          added_dirs = set()
-
-          def add_dir(d):
-              if d in added_dirs:
-                  return
-              added_dirs.add(d)
-              ti = tarfile.TarInfo(d)
-              ti.type = tarfile.DIRTYPE
-              ti.mode = 0o755
-              data_tar.addfile(ti)
-
-          def ensure_parents(name):
-              parts = name.lstrip("./").split("/")
-              cur = ""
-              for p in parts[:-1]:
-                  cur = (cur + "/" + p).strip("/")
-                  add_dir("./" + cur if cur else ".")
-
-          def add_file(name, content, mode=0o644):
-              ensure_parents(name)
-              ti = tarfile.TarInfo(name)
-              ti.size = len(content)
-              ti.mode = mode
-              data_tar.addfile(ti, io.BytesIO(content))
-
-          add_dir(".")
-          for member in src_tar.getmembers():
-              if not member.name.startswith(PREFIX):
-                  continue
-              rel = member.name[len(PREFIX):]
-              if rel.startswith("luasrc/"):
-                  target = "usr/lib/lua/luci/" + rel[len("luasrc/"):]
-              elif rel.startswith("root/"):
-                  target = rel[len("root/"):]
-              elif rel.startswith("po/"):
-                  target = "usr/lib/lua/luci/" + rel
-              else:
-                  continue
-              if member.isdir():
-                  add_dir("./" + target)
-                  continue
-              add_file("./" + target, src_tar.extractfile(member).read(), member.mode & 0o777)
-          data_tar.close()
-
-          control = textwrap.dedent("""\
-          Package: luci-app-accesscontrol
-          Version: 1.0-r1
-          Depends: libc, luci-base, luci-lua-runtime
-          Section: luci
-          Architecture: all
-          Maintainer: aige168
-          Source: https://github.com/aige168/luci-app-accesscontrol
-          Description: AccessControl for LuCI
-          Installed-Size: 40
-          """)
-          ctrl_buf = io.BytesIO()
-          ctrl_tar = tarfile.open(fileobj=ctrl_buf, mode='w:gz')
-          ti = tarfile.TarInfo("./control")
-          ti.size = len(control.encode())
-          ti.mode = 0o644
-          ctrl_tar.addfile(ti, io.BytesIO(control.encode()))
-          ctrl_tar.close()
-
-          def make_nested_tgz(payloads):
-              buf = io.BytesIO()
-              t = tarfile.open(fileobj=buf, mode='w:gz')
-              for name, content in payloads:
-                  ti = tarfile.TarInfo(name)
-                  ti.size = len(content)
-                  ti.mode = 0o644
-                  t.addfile(ti, io.BytesIO(content))
-              t.close()
-              return buf.getvalue()
-
-          ipk = make_nested_tgz([
-              ("./debian-binary", b"2.0\n"),
-              ("./data.tar.gz", data_buf.getvalue()),
-              ("./control.tar.gz", ctrl_buf.getvalue()),
-          ])
-
-          with open("${{ github.workspace }}/shell/accesscontrol/luci-app-accesscontrol.ipk", "wb") as f:
-              f.write(ipk)
-          print("✅ luci-app-accesscontrol.ipk 已生成")
-          PYEOF
+          curl -sL -o "${{ github.workspace }}/shell/accesscontrol/luci-app-accesscontrol.ipk" \
+            "https://down.dllkids.xyz/openwrt-feed/24.10/aarch64_generic/luci-app-accesscontrol_27.150.62553~79d9f36_all.ipk"
+          echo "✅ luci-app-accesscontrol.ipk 已下载到 shell/accesscontrol/ (dllkids feed)"
           echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-accesscontrol"' >> shell/custom-packages.sh
           echo "✅ 已追加 accesscontrol"
 
       - name: Enable OpenList2
         run: |
           mkdir -p "${{ github.workspace }}/shell/openlist2"
-          curl -sL "https://github.com/sbwml/luci-app-openlist2/releases/download/v4.2.5/openwrt-24.10-aarch64_generic.tar.gz" \
-            | tar -xzf - -C "${{ github.workspace }}/shell/openlist2/" --strip-components=1
-          echo "✅ openlist2 IPK 已下载到 shell/openlist2/"
-          echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-openlist2 luci-i18n-openlist2-zh-cn"' >> shell/custom-packages.sh
+          curl -sL -o "${{ github.workspace }}/shell/openlist2/luci-app-openlist2.ipk" \
+            "https://down.dllkids.xyz/openwrt-feed/24.10/aarch64_generic/luci-app-openlist2_27.211.38379~c992d8e_all.ipk"
+          curl -sL -o "${{ github.workspace }}/shell/openlist2/openlist2.ipk" \
+            "https://down.dllkids.xyz/openwrt-feed/24.10/aarch64_generic/openlist2_4.2.4-r1_aarch64_generic.ipk"
+          echo "✅ openlist2 IPK 已下载到 shell/openlist2/ (dllkids feed)"
+          echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-openlist2 openlist2"' >> shell/custom-packages.sh
           echo "✅ 已追加 openlist2"
 
       - name: Building Rockchip ImmortalWrt 24.10.x
