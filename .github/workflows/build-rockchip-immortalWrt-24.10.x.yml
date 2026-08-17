@@ -143,7 +143,7 @@ jobs:
                   continue
               if member.isdir():
                   continue
-              add_file(target, src_tar.extractfile(member).read(), member.mode & 0o777)
+              add_file("./" + target, src_tar.extractfile(member).read(), member.mode & 0o777)
           data_tar.close()
 
           control = textwrap.dedent("""\
@@ -159,30 +159,31 @@ jobs:
           """)
           ctrl_buf = io.BytesIO()
           ctrl_tar = tarfile.open(fileobj=ctrl_buf, mode='w:gz')
-          ti = tarfile.TarInfo("control")
+          ti = tarfile.TarInfo("./control")
           ti.size = len(control.encode())
           ti.mode = 0o644
           ctrl_tar.addfile(ti, io.BytesIO(control.encode()))
           ctrl_tar.close()
 
-          def ar_append(out, name, content):
-              header = name.ljust(16)[:16].encode()
-              header += b"0".ljust(12) + b"0".ljust(6) + b"0".ljust(6)
-              header += b"100644".ljust(8)
-              header += str(len(content)).ljust(10).encode() + b"`\n"
-              out.write(header)
-              out.write(content)
-              if len(content) % 2 == 1:
-                  out.write(b"\n")
+          def make_nested_tgz(payloads):
+              buf = io.BytesIO()
+              t = tarfile.open(fileobj=buf, mode='w:gz')
+              for name, content in payloads:
+                  ti = tarfile.TarInfo(name)
+                  ti.size = len(content)
+                  ti.mode = 0o644
+                  t.addfile(ti, io.BytesIO(content))
+              t.close()
+              return buf.getvalue()
 
-          out = io.BytesIO()
-          out.write(b"!<arch>\n")
-          ar_append(out, "debian-binary", b"2.0\n")
-          ar_append(out, "control.tar.gz", ctrl_buf.getvalue())
-          ar_append(out, "data.tar.gz", data_buf.getvalue())
+          ipk = make_nested_tgz([
+              ("./debian-binary", b"2.0\n"),
+              ("./data.tar.gz", data_buf.getvalue()),
+              ("./control.tar.gz", ctrl_buf.getvalue()),
+          ])
 
           with open("${{ github.workspace }}/shell/accesscontrol/luci-app-accesscontrol.ipk", "wb") as f:
-              f.write(out.getvalue())
+              f.write(ipk)
           print("✅ luci-app-accesscontrol.ipk 已生成")
           PYEOF
           echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-accesscontrol"' >> shell/custom-packages.sh
