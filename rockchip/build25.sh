@@ -46,6 +46,9 @@ else
   if [ -d /home/build/immortalwrt/shell/openlist2 ]; then
     cp -v /home/build/immortalwrt/shell/openlist2/*.apk /home/build/immortalwrt/packages/ 2>/dev/null || true
   fi
+  if [ -d /home/build/immortalwrt/shell/accesscontrol ]; then
+    cp -v /home/build/immortalwrt/shell/accesscontrol/*.apk /home/build/immortalwrt/packages/ 2>/dev/null || true
+  fi
   echo "✅ packages 目录最终内容:"
   ls -lah /home/build/immortalwrt/packages/
 fi
