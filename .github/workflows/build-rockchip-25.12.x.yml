@@ -140,7 +140,7 @@ jobs:
       - name: Enable OpenList2
         run: |
           python3 << 'PYEOF'
-          import struct, tarfile, io, urllib.request, os
+          import struct, tarfile, io, urllib.request, os, gzip
 
           BASE_URL = "https://github.com/sbwml/luci-app-openlist2/releases/download/v4.2.5/openwrt-25.12-aarch64_cortex-a72.tar.gz"
           print("📥 下载 openlist2...")
@@ -152,23 +152,18 @@ jobs:
                   continue
               print(f"  📦 处理 {os.path.basename(member.name)}...")
               ipk_data = outer_tar.extractfile(member).read()
-              assert ipk_data[:8] == b'!<arch>\n', "不是 ar 格式"
-              pos = 8
+              # IPK 现在是 gzip(tar) 格式，需解压后提取 data.tar.gz
+              decompressed = gzip.decompress(ipk_data)
+              inner_tar = tarfile.open(fileobj=io.BytesIO(decompressed))
               extracted = False
-              while pos < len(ipk_data):
-                  name = ipk_data[pos:pos+16].decode().strip()
-                  size = int(ipk_data[pos+48:pos+58].decode().strip())
-                  pos += 60
-                  content = ipk_data[pos:pos+size]
-                  if name == 'data.tar.gz':
-                      inner_tar = tarfile.open(fileobj=io.BytesIO(content))
-                      inner_tar.extractall('files')
+              for entry in inner_tar.getmembers():
+                  if entry.name.endswith('/data.tar.gz') or entry.name == 'data.tar.gz':
+                      data_gz = inner_tar.extractfile(entry).read()
+                      data_tar = tarfile.open(fileobj=io.BytesIO(data_gz), mode='r:gz')
+                      data_tar.extractall('files')
                       extracted = True
                       print(f"    ✅ 已解压到 files/")
                       break
-                  pos += size
-                  if size % 2 != 0:
-                      pos += 1
               if not extracted:
                   print(f"    ❌ 未找到 data.tar.gz")
                   exit(1)
