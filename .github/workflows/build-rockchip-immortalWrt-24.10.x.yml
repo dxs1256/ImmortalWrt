@@ -112,6 +112,79 @@ jobs:
 
       - name: Enable Accesscontrol integration
         run: |
+          mkdir -p "${{ github.workspace }}/shell/accesscontrol"
+          python3 << 'PYEOF'
+          import io, tarfile, urllib.request, textwrap
+
+          resp = urllib.request.urlopen("https://github.com/aige168/luci-app-accesscontrol/archive/refs/heads/main.tar.gz")
+          src_tar = tarfile.open(fileobj=io.BytesIO(resp.read()))
+          PREFIX = "luci-app-accesscontrol-main/"
+
+          data_buf = io.BytesIO()
+          data_tar = tarfile.open(fileobj=data_buf, mode='w:gz')
+
+          def add_file(name, content, mode=0o644):
+              ti = tarfile.TarInfo(name)
+              ti.size = len(content)
+              ti.mode = mode
+              data_tar.addfile(ti, io.BytesIO(content))
+
+          for member in src_tar.getmembers():
+              if not member.name.startswith(PREFIX):
+                  continue
+              rel = member.name[len(PREFIX):]
+              if rel.startswith("luasrc/"):
+                  target = "usr/lib/lua/luci/" + rel[len("luasrc/"):]
+              elif rel.startswith("root/"):
+                  target = rel[len("root/"):]
+              elif rel.startswith("po/"):
+                  target = "usr/lib/lua/luci/" + rel
+              else:
+                  continue
+              if member.isdir():
+                  continue
+              add_file(target, src_tar.extractfile(member).read(), member.mode & 0o777)
+          data_tar.close()
+
+          control = textwrap.dedent("""\
+          Package: luci-app-accesscontrol
+          Version: 1.0-r1
+          Depends: libc, luci-base, luci-lua-runtime
+          Section: luci
+          Architecture: all
+          Maintainer: aige168
+          Source: https://github.com/aige168/luci-app-accesscontrol
+          Description: AccessControl for LuCI
+          Installed-Size: 40
+          """)
+          ctrl_buf = io.BytesIO()
+          ctrl_tar = tarfile.open(fileobj=ctrl_buf, mode='w:gz')
+          ti = tarfile.TarInfo("control")
+          ti.size = len(control.encode())
+          ti.mode = 0o644
+          ctrl_tar.addfile(ti, io.BytesIO(control.encode()))
+          ctrl_tar.close()
+
+          def ar_append(out, name, content):
+              header = name.ljust(16)[:16].encode()
+              header += b"0".ljust(12) + b"0".ljust(6) + b"0".ljust(6)
+              header += b"100644".ljust(8)
+              header += str(len(content)).ljust(10).encode() + b"`\n"
+              out.write(header)
+              out.write(content)
+              if len(content) % 2 == 1:
+                  out.write(b"\n")
+
+          out = io.BytesIO()
+          out.write(b"!<arch>\n")
+          ar_append(out, "debian-binary", b"2.0\n")
+          ar_append(out, "control.tar.gz", ctrl_buf.getvalue())
+          ar_append(out, "data.tar.gz", data_buf.getvalue())
+
+          with open("${{ github.workspace }}/shell/accesscontrol/luci-app-accesscontrol.ipk", "wb") as f:
+              f.write(out.getvalue())
+          print("✅ luci-app-accesscontrol.ipk 已生成")
+          PYEOF
           echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-accesscontrol"' >> shell/custom-packages.sh
           echo "✅ 已追加 accesscontrol"
 

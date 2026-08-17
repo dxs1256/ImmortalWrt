@@ -103,8 +103,34 @@ jobs:
 
       - name: Enable Accesscontrol integration
         run: |
-          echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-accesscontrol"' >> shell/apk-custom-packages.sh
-          echo "✅ 已追加 accesscontrol"
+          # 25.12 无 luci-app-accesscontrol 的 apk 包（官方源/第三方均为 ipk），
+          # 这里用 files/ 覆层方式集成，插件可用但不显示在 Plugin-list
+          mkdir -p files
+          python3 << 'PYEOF'
+          import tarfile, urllib.request, io, os
+
+          BASE_URL = "https://github.com/aige168/luci-app-accesscontrol/archive/refs/heads/main.tar.gz"
+          print("📥 下载 luci-app-accesscontrol...")
+          resp = urllib.request.urlopen(BASE_URL)
+          tar = tarfile.open(fileobj=io.BytesIO(resp.read()))
+
+          PREFIX = "luci-app-accesscontrol-main/"
+          for member in tar.getmembers():
+              if not member.name.startswith(PREFIX):
+                  continue
+              rel = member.name[len(PREFIX):]
+              if rel.startswith("luasrc/"):
+                  member.name = "usr/lib/lua/luci/" + rel[len("luasrc/"):]
+              elif rel.startswith("root/"):
+                  member.name = rel[len("root/"):]
+              elif rel.startswith("po/"):
+                  member.name = "usr/lib/lua/luci/" + rel
+              else:
+                  continue
+              if member.isfile() or member.islnk():
+                  tar.extract(member, "files")
+          print("✅ accesscontrol 已解压到 files/")
+          PYEOF
 
       - name: Enable OpenList2
         run: |

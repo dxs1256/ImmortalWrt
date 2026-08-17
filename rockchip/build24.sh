@@ -47,6 +47,9 @@ else
   if [ -d /home/build/immortalwrt/shell/openlist2 ]; then
     cp -v /home/build/immortalwrt/shell/openlist2/*.ipk /home/build/immortalwrt/packages/ 2>/dev/null || true
   fi
+  if [ -d /home/build/immortalwrt/shell/accesscontrol ]; then
+    cp -v /home/build/immortalwrt/shell/accesscontrol/*.ipk /home/build/immortalwrt/packages/ 2>/dev/null || true
+  fi
   echo "✅ packages 目录最终内容:"
   ls -lah /home/build/immortalwrt/packages/
   # 添加架构优先级信息
