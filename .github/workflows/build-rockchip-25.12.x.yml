@@ -33,21 +33,6 @@ on:
           - '2G'
           - '3G'
           - '4G'
-      enable_store:
-        description: "集成 store 商店"
-        required: false
-        type: boolean
-        default: false
-      enable_pushbot:
-        description: "集成 PushBot 消息推送插件"
-        required: false
-        type: boolean
-        default: false
-      enable_accesscontrol:
-        description: "集成上网行为管理 (AccessControl)"
-        required: false
-        type: boolean
-        default: false
       include_docker:
         description: |
           是否编译 Docker 插件
@@ -104,22 +89,13 @@ jobs:
             fi
           fi
 
-      - name: Enable Store integration
-        run: |
-          if [ "${{ github.event.inputs.enable_store }}" == "true" ]; then
-            echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-store"' >> shell/apk-custom-packages.sh
-            echo "✅ 已追加 luci-app-store"
-          else
-            echo "❎ 未启用 luci-app-store"
-          fi
       # docker 引擎(docker/dockerd)已在 rockchip/build25.sh 的 INCLUDE_DOCKER=yes 分支处理，
-      # 无需在此追加 custom-packages.sh（那是 24.10/opkg 用的，对 25.12/apk 无效）
+      # 无需在此追加 apk-custom-packages.sh（那是 24.10/opkg 用的，对 25.12/apk 无效）
 
       - name: Enable Pushbot integration
-        if: ${{ github.event.inputs.enable_pushbot == 'true' }}
         run: |
           python3 << 'PYEOF'
-          import tarfile, urllib.request
+          import tarfile, urllib.request, io
 
           BASE_URL = "https://github.com/gaoyaxuan/luci-app-pushbot/releases/download/v3.8.20"
           APK_URL = f"{BASE_URL}/luci-app-pushbot-3.8.20-r1_SNAPSHOT.apk"
@@ -134,7 +110,6 @@ jobs:
           echo "✅ 已追加 pushbot 依赖"
 
       - name: Enable Accesscontrol integration
-        if: ${{ github.event.inputs.enable_accesscontrol == 'true' }}
         run: |
           python3 << 'PYEOF'
           import tarfile, urllib.request, io, os
