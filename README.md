@@ -1,5 +1,5 @@
 # [新手指导](https://github.com/wukongdaily/AutoBuildImmortalWrt/wiki) 👈🏻
-# ImmortalWrt-ImageBuilder
+# Auto-R4S
 
 **⚠️ 重要声明**
 

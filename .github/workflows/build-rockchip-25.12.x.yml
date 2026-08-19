@@ -1,4 +1,4 @@
-name: Build 25.12.x Rockchip
+name: Auto-R4S Build 25.12.x Rockchip
 # 目前此工作流可以集成imm仓库内的软件 第三方软件暂不能集成(待开发)
 on:
   workflow_dispatch:

@@ -1,4 +1,4 @@
-name: Build 24.10.x Rockchip
+name: Auto-R4S Build 24.10.x Rockchip
 
 on:
   workflow_dispatch:
