@@ -95,8 +95,9 @@ jobs:
       - name: Enable Pushbot integration
         run: |
           mkdir -p "${{ github.workspace }}/shell/pushbot"
-          curl -sL -o "${{ github.workspace }}/shell/pushbot/pushbot.apk" \
+          curl -sL -o "${{ github.workspace }}/shell/pushbot/luci-app-pushbot-27.222.35022~a09d467.apk" \
             "https://down.dllkids.xyz/openwrt-feed/25.12/aarch64_generic/luci-app-pushbot-27.222.35022~a09d467.apk"
+          test -s "${{ github.workspace }}/shell/pushbot/luci-app-pushbot-27.222.35022~a09d467.apk" || { echo "❌ pushbot 下载失败或为空"; exit 1; }
           echo "✅ pushbot.apk 已下载到 shell/pushbot/ (dllkids feed)"
           echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-pushbot bash curl jq smartmontools iputils-arping"' >> shell/apk-custom-packages.sh
           echo "✅ 已追加 pushbot"
@@ -104,8 +105,9 @@ jobs:
       - name: Enable Accesscontrol integration
         run: |
           mkdir -p "${{ github.workspace }}/shell/accesscontrol"
-          curl -sL -o "${{ github.workspace }}/shell/accesscontrol/luci-app-accesscontrol.apk" \
+          curl -sL -o "${{ github.workspace }}/shell/accesscontrol/luci-app-accesscontrol-27.150.62553~79d9f36.apk" \
             "https://down.dllkids.xyz/openwrt-feed/25.12/aarch64_generic/luci-app-accesscontrol-27.150.62553~79d9f36.apk"
+          test -s "${{ github.workspace }}/shell/accesscontrol/luci-app-accesscontrol-27.150.62553~79d9f36.apk" || { echo "❌ accesscontrol 下载失败或为空"; exit 1; }
           echo "✅ luci-app-accesscontrol.apk 已下载到 shell/accesscontrol/ (dllkids feed)"
           echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-accesscontrol"' >> shell/apk-custom-packages.sh
           echo "✅ 已追加 accesscontrol"
@@ -113,10 +115,12 @@ jobs:
       - name: Enable OpenList2
         run: |
           mkdir -p "${{ github.workspace }}/shell/openlist2"
-          curl -sL -o "${{ github.workspace }}/shell/openlist2/luci-app-openlist2.apk" \
+          curl -sL -o "${{ github.workspace }}/shell/openlist2/luci-app-openlist2-27.211.38379~c992d8e.apk" \
             "https://down.dllkids.xyz/openwrt-feed/25.12/aarch64_generic/luci-app-openlist2-27.211.38379~c992d8e.apk"
-          curl -sL -o "${{ github.workspace }}/shell/openlist2/openlist2.apk" \
+          curl -sL -o "${{ github.workspace }}/shell/openlist2/openlist2-4.2.4-r1.apk" \
             "https://down.dllkids.xyz/openwrt-feed/25.12/aarch64_generic/openlist2-4.2.4-r1.apk"
+          test -s "${{ github.workspace }}/shell/openlist2/luci-app-openlist2-27.211.38379~c992d8e.apk" || { echo "❌ luci-app-openlist2 下载失败或为空"; exit 1; }
+          test -s "${{ github.workspace }}/shell/openlist2/openlist2-4.2.4-r1.apk" || { echo "❌ openlist2 下载失败或为空"; exit 1; }
           echo "✅ openlist2 APK 已下载到 shell/openlist2/ (dllkids feed)"
           echo 'CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-app-openlist2 openlist2"' >> shell/apk-custom-packages.sh
           echo "✅ 已追加 openlist2"
